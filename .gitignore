@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+build/
+dist/
+*.spec
+*.log
+
+# 真实发票 / 生成结果 / 公司历史，不要提交
+*.pdf
+*.xls
+*.xlsx
+!examples/示例-入库单.xls
+data/catalog.json
+data/aliases.json
+示例输出/
+userdata/
