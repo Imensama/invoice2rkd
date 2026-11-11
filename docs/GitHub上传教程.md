@@ -167,8 +167,8 @@ exe/zip 体积较大，**不要放到仓库文件里**，放 GitHub 的 **Releas
    这个包是从公开源码打的，不带公司历史库。以后重新打包后，zip 会生成在 `invoice2rkd-public\dist\`，把它复制到 `invoice2rkd-release` 或直接上传即可。
 2. 打开你的 GitHub 仓库，点右侧 **Releases** → **Draft a new release**。
 3. 填写：
-   - **Choose a tag**：`v1.2.0`，点 **Create new tag**
-   - **Release title**：`v1.2.0 电子票文字层 + 扫描OCR双路径`
+   - **Choose a tag**：`v1.3.0`，点 **Create new tag**
+   - **Release title**：`v1.3.0 中/英界面 + 电子票文字层 + 公司设置`
    - **Describe this release**：写更新内容（可以复制 `CHANGELOG.md`）
 4. 把 `入库单生成器-便携版.zip` 拖到 **Attach binaries** 区域。
 5. 点 **Publish release**。
@@ -210,7 +210,7 @@ exe/zip 体积较大，**不要放到仓库文件里**，放 GitHub 的 **Releas
    powershell -ExecutionPolicy Bypass -File build.ps1
    ```
 3. 把源码改动同步到 GitHub（方式 B/C）。
-4. 新建一个 Release（例如 `v1.2.1`），上传新的 zip。
+4. 新建一个 Release（例如 `v1.3.1`），上传新的 zip。
 
 ---
 

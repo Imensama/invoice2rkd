@@ -90,7 +90,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--verify-pdf", action="store_true", help="用 Excel 导出 PDF 并检查版式")
     p.add_argument("--quiet", "-q", action="store_true")
     p.add_argument("--gui", action="store_true", help="启动图形界面")
-    p.add_argument("--version", action="version", version="invoice2rkd 1.2.0")
+    p.add_argument("--version", action="version", version="invoice2rkd 1.3.0")
     return p
 
 

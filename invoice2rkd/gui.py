@@ -38,6 +38,7 @@ from .core import (
     save_company,
 )
 from .excel_writer import export_pdf_and_check, verify_workbook, write_workbook
+from .i18n import EN, get_language, help_text, set_language, tr, tr_runtime
 
 
 def _float_or_none(text: str) -> Optional[float]:
@@ -90,7 +91,7 @@ class PreviewPane(ttk.Frame):
     def render(self):
         self.canvas.delete("all")
         if self.image is None:
-            self.canvas.create_text(20, 20, anchor="nw", text="（无预览）", fill="#777")
+            self.canvas.create_text(20, 20, anchor="nw", text=tr("（无预览）"), fill="#777")
             return
         w = max(200, self.canvas.winfo_width() - 10)
         h = max(200, self.canvas.winfo_height() - 10)
@@ -132,8 +133,9 @@ class App(_AppBase):
         self.arrival_var = tk.StringVar()
         self.stock_var = tk.StringVar()
         self.progress_var = tk.DoubleVar(value=0)
-        self.status_var = tk.StringVar(value="就绪")
-        self.mode_var = tk.StringVar(value="自动（推荐）")
+        self.status_var = tk.StringVar(value=tr("就绪"))
+        self.mode_var = tk.StringVar(value=tr("自动（推荐）"))
+        self.language_var = tk.StringVar(value="中文" if get_language() == "zh" else "English")
         self.banner_var = tk.StringVar(value="")
         self.seller_var = tk.StringVar()
         self.number_var = tk.StringVar()
@@ -154,6 +156,7 @@ class App(_AppBase):
         self.item_remark_var = tk.StringVar()
         self._build_style()
         self._build_ui()
+        self._apply_language()
         if initial_inputs:
             self.inputs = list(initial_inputs)
             self._guess_output()
@@ -227,13 +230,24 @@ class App(_AppBase):
         self.progress.grid(row=0, column=0, sticky="ew")
         ttk.Label(progress_frame, textvariable=self.status_var, width=34).grid(row=0, column=1, padx=(8, 0))
         ttk.Label(progress_frame, text="识别模式:").grid(row=0, column=2, padx=(10, 2))
-        ttk.Combobox(
+        self.mode_combo = ttk.Combobox(
             progress_frame,
             textvariable=self.mode_var,
-            values=("自动（推荐）", "仅文字层（电子票）", "仅OCR（扫描件）"),
+            values=tuple(tr(k) for k in ("自动（推荐）", "仅文字层（电子票）", "仅OCR（扫描件）")),
             state="readonly",
             width=18,
-        ).grid(row=0, column=3)
+        )
+        self.mode_combo.grid(row=0, column=3)
+        ttk.Label(progress_frame, text="语言/Language:").grid(row=0, column=4, padx=(14, 2))
+        self.lang_combo = ttk.Combobox(
+            progress_frame,
+            textvariable=self.language_var,
+            values=("中文", "English"),
+            state="readonly",
+            width=9,
+        )
+        self.lang_combo.grid(row=0, column=5)
+        self.lang_combo.bind("<<ComboboxSelected>>", self.on_language_change)
 
         main = ttk.PanedWindow(self, orient="horizontal")
         main.grid(row=2, column=0, sticky="nsew", padx=8, pady=6)
@@ -412,6 +426,68 @@ class App(_AppBase):
         self.banner.grid(row=2, column=0, columnspan=21, sticky="ew", pady=(8, 0))
         self.update_banner(self._input_summary())
 
+    def _translate_widget_tree(self, widget):
+        for child in widget.winfo_children():
+            try:
+                text = child.cget("text")
+                if isinstance(text, str) and text:
+                    if not hasattr(child, "_i18n_src"):
+                        child._i18n_src = text
+                    child.configure(text=tr(child._i18n_src))
+            except Exception:
+                pass
+            if isinstance(child, ttk.Notebook):
+                try:
+                    if not hasattr(child, "_i18n_tabs"):
+                        child._i18n_tabs = {tab: child.tab(tab, "text") for tab in child.tabs()}
+                    for tab, src in child._i18n_tabs.items():
+                        child.tab(tab, text=tr(src))
+                except Exception:
+                    pass
+            if isinstance(child, ttk.Treeview):
+                try:
+                    if not hasattr(child, "_i18n_headings"):
+                        child._i18n_headings = {
+                            col: child.heading(col, "text") for col in child["columns"]
+                        }
+                    for col, src in child._i18n_headings.items():
+                        child.heading(col, text=tr(src))
+                except Exception:
+                    pass
+            self._translate_widget_tree(child)
+
+    def _apply_language(self):
+        self.language_var.set("中文" if get_language() == "zh" else "English")
+        self.title(tr("扫描发票 → 入库单生成器"))
+        self._translate_widget_tree(self)
+        mode_keys = ("自动（推荐）", "仅文字层（电子票）", "仅OCR（扫描件）")
+        current = self.mode_var.get()
+        idx = 0
+        for i, key in enumerate(mode_keys):
+            if current in (key, EN.get(key), tr(key)):
+                idx = i
+                break
+        self.mode_combo["values"] = tuple(tr(k) for k in mode_keys)
+        self.mode_var.set(tr(mode_keys[idx]))
+        try:
+            if self.worker and self.worker.is_alive():
+                self.recognize_button.configure(text=tr("识别中..."))
+                self.status_var.set(tr("正在识别..."))
+            else:
+                self.recognize_button.configure(text=tr("开始识别"))
+                self.status_var.set(tr("就绪"))
+        except Exception:
+            pass
+        self.update_banner(self._input_summary())
+
+    def on_language_change(self, event=None):
+        lang = "zh" if self.language_var.get() == "中文" else "en"
+        if lang == get_language():
+            return
+        set_language(lang)
+        self._apply_language()
+        self.append_log("界面语言已切换 / UI language changed")
+
     def _report_callback_exception(self, exc, val, tb):
         import traceback
 
@@ -422,14 +498,17 @@ class App(_AppBase):
                 f.write("\n" + "=" * 80 + "\n")
         except Exception:
             pass
-        self.append_log("界面异常: " + text)
+        self.append_log(tr("界面异常: ") + text)
         try:
-            messagebox.showerror("程序出错", "已写入日志: " + str(USER_DIR / "error.log") + "\n\n" + text[-1500:])
+            messagebox.showerror(
+                tr("程序出错"),
+                tr("已写入日志: ") + str(USER_DIR / "error.log") + "\n\n" + text[-1500:],
+            )
         except Exception:
             pass
 
     def append_log(self, text: str):
-        self.log_text.insert("end", text.rstrip() + "\n")
+        self.log_text.insert("end", tr_runtime(text).rstrip() + "\n")
         self.log_text.see("end")
 
     def update_banner(self, text: str, kind: str = "info"):
@@ -440,14 +519,20 @@ class App(_AppBase):
             "error": ("#F4CCCC", "#7F0000"),
         }
         bg, fg = colors.get(kind, colors["info"])
-        self.banner_var.set(text)
+        self.banner_var.set(tr_runtime(text))
         try:
             self.banner.configure(bg=bg, fg=fg)
         except Exception:
             pass
 
     def _input_summary(self) -> str:
+        en = get_language() == "en"
         if not self.inputs:
+            if en:
+                text = "No files added yet. Click Add PDF/Images, or drag files to the list on the left."
+                if company_needs_setup():
+                    text += " First-time users: open Company Settings and fill in your company name."
+                return text
             text = "尚未添加文件。点“添加 PDF/图片”，或把文件拖到左侧列表。"
             if company_needs_setup():
                 text += " 首次使用请先点右上角“公司设置”，填写公司名。"
@@ -476,6 +561,19 @@ class App(_AppBase):
                 folder_files += len(collect_input_files([str(d)], recursive=False))
             except Exception:
                 pass
+        if en:
+            if len(files) == 1 and not folders:
+                suffix = f" (~{pages} pages)" if page_known else ""
+                return f"Added 1 file: {files[0].name}{suffix} — click Start above"
+            if len(folders) == 1 and not files:
+                suffix = f" ({folder_files} files)" if folder_files else ""
+                return f"Added 1 folder: {folders[0].name}{suffix} — click Start above"
+            parts = []
+            if files:
+                parts.append(f"{len(files)} files" + (f" (~{pages} pages)" if page_known else ""))
+            if folders:
+                parts.append(f"{len(folders)} folders" + (f" ({folder_files} files)" if folder_files else ""))
+            return "Added " + " + ".join(parts) + " — click Start above"
         if len(files) == 1 and not folders:
             suffix = f"（约 {pages} 页）" if page_known else ""
             return f"已添加 1 个文件：{files[0].name}{suffix} — 点上方“开始识别”"
@@ -506,30 +604,39 @@ class App(_AppBase):
                     added += 1
             else:
                 unsupported.append(p.name)
+        en = get_language() == "en"
         if added:
             self._guess_output()
-            self.status_var.set(f"已添加 {len(self.inputs)} 个输入")
+            self.status_var.set(
+                f"Added {len(self.inputs)} input(s)" if en else f"已添加 {len(self.inputs)} 个输入"
+            )
             self.update_banner(self._input_summary())
-            self.append_log(f"{source}: 新增 {added} 项，等待识别")
+            if en:
+                self.append_log(f"{tr(source)}: {added} new item(s), waiting to recognize")
+            else:
+                self.append_log(f"{source}: 新增 {added} 项，等待识别")
         elif self.inputs:
             self.update_banner(self._input_summary())
-            self.append_log(f"{source}: 没有新增（可能已在列表里）")
+            if en:
+                self.append_log(f"{tr(source)}: nothing new (already in the list)")
+            else:
+                self.append_log(f"{source}: 没有新增（可能已在列表里）")
         for name in unsupported:
             self.append_log(f"不支持的文件，已忽略: {name}")
         return added
 
     def on_drag_enter(self, event=None):
         try:
-            self.drop_hint.configure(text="松开鼠标即可添加", bg="#D9EAD3", fg="#274E13")
+            self.drop_hint.configure(text=tr("松开鼠标即可添加"), bg="#D9EAD3", fg="#274E13")
         except Exception:
             pass
-        self.update_banner("松开鼠标即可添加文件/文件夹", "warn")
+        self.update_banner(tr("松开鼠标即可添加文件/文件夹"), "warn")
         return getattr(event, "action", None) if event is not None else None
 
     def on_drag_leave(self, event=None):
         try:
             self.drop_hint.configure(
-                text=("把 PDF/图片/文件夹拖到这里" if DND_AVAILABLE else "点上方添加 PDF/图片/文件夹"),
+                text=tr("把 PDF/图片/文件夹拖到这里" if DND_AVAILABLE else "点上方添加 PDF/图片/文件夹"),
                 bg="#F0F0F0",
                 fg="#666666",
             )
@@ -549,20 +656,23 @@ class App(_AppBase):
 
     def add_files(self):
         paths = filedialog.askopenfilenames(
-            title="选择发票 PDF 或图片",
-            filetypes=[("发票文件", "*.pdf *.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp"), ("所有文件", "*.*")],
+            title=tr("选择发票 PDF 或图片"),
+            filetypes=[
+                (tr("发票文件"), "*.pdf *.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp"),
+                (tr("所有文件"), "*.*"),
+            ],
         )
         if paths:
             self._add_paths(paths, "添加文件")
 
     def add_folder(self):
-        folder = filedialog.askdirectory(title="选择发票文件夹")
+        folder = filedialog.askdirectory(title=tr("选择发票文件夹"))
         if folder:
             self._add_paths([folder], "添加文件夹")
 
     def clear_inputs(self):
         if self.worker and self.worker.is_alive():
-            messagebox.showwarning("提示", "正在识别，请先停止")
+            messagebox.showwarning(tr("提示"), tr("正在识别，请先停止"))
             return
         self.inputs = []
         self.result = ProcessResult()
@@ -572,7 +682,7 @@ class App(_AppBase):
         self.item_tree.delete(*self.item_tree.get_children())
         self.preview.show("")
         self.progress_var.set(0)
-        self.status_var.set("已清空")
+        self.status_var.set(tr("已清空"))
         self.update_banner(self._input_summary())
 
     def _guess_output(self):
@@ -589,7 +699,7 @@ class App(_AppBase):
 
     def browse_output(self):
         path = filedialog.asksaveasfilename(
-            title="保存入库单",
+            title=tr("保存入库单"),
             defaultextension=".xls",
             filetypes=[("Excel 97-2003", "*.xls")],
             initialfile=Path(self.output_path.get()).name if self.output_path.get() else "入库单.xls",
@@ -600,7 +710,7 @@ class App(_AppBase):
     def edit_company(self):
         company = get_company()
         dialog = tk.Toplevel(self)
-        dialog.title("公司设置")
+        dialog.title(tr("公司设置"))
         dialog.transient(self)
         dialog.resizable(False, False)
         dialog.grab_set()
@@ -628,25 +738,26 @@ class App(_AppBase):
         def on_save():
             buyer_text = buyer_var.get().strip()
             if not buyer_text:
-                messagebox.showwarning("提示", "请填写购买方公司名称", parent=dialog)
+                messagebox.showwarning(tr("提示"), tr("请填写购买方公司名称"), parent=dialog)
                 return
             save_company(title_var.get(), buyer_text)
             self.append_log(f"已保存公司设置：标题={title_var.get().strip() or '入库单'}，购买方={buyer_text}")
-            self.update_banner("公司设置已保存：之后生成的入库单会使用新的标题和购买方", "success")
+            self.update_banner(tr("公司设置已保存：之后生成的入库单会使用新的标题和购买方"), "success")
             dialog.destroy()
 
         buttons = ttk.Frame(frame)
         buttons.grid(row=3, column=0, columnspan=2, sticky="e", pady=(14, 0))
         ttk.Button(buttons, text="保存", command=on_save).grid(row=0, column=0, padx=(0, 6))
         ttk.Button(buttons, text="取消", command=dialog.destroy).grid(row=0, column=1)
+        self._translate_widget_tree(dialog)
         dialog.wait_window()
 
     def start_process(self):
         if self.worker and self.worker.is_alive():
-            messagebox.showwarning("提示", "正在识别中")
+            messagebox.showwarning(tr("提示"), tr("正在识别中"))
             return
         if not self.inputs:
-            messagebox.showwarning("提示", "请先添加 PDF/图片或文件夹")
+            messagebox.showwarning(tr("提示"), tr("请先添加 PDF/图片或文件夹"))
             return
         self.stop_event.clear()
         self.msg_queue = queue.Queue()
@@ -657,10 +768,10 @@ class App(_AppBase):
         self.item_tree.delete(*self.item_tree.get_children())
         self.preview.show("")
         self.progress_var.set(0)
-        self.status_var.set("正在识别...")
-        self.update_banner("正在识别，请稍候...", "info")
+        self.status_var.set(tr("正在识别..."))
+        self.update_banner(tr("正在识别，请稍候..."), "info")
         try:
-            self.recognize_button.configure(state="disabled", text="识别中...", bg="#6A6A6A")
+            self.recognize_button.configure(state="disabled", text=tr("识别中..."), bg="#6A6A6A")
         except Exception:
             pass
         self.append_log(f"开始识别（{self.mode_var.get()}）: " + "；".join(self.inputs))
@@ -669,9 +780,9 @@ class App(_AppBase):
             self.msg_queue.put(("progress", msg, cur, total))
 
         mode_map = {
-            "自动（推荐）": "auto",
-            "仅文字层（电子票）": "text",
-            "仅OCR（扫描件）": "ocr",
+            tr("自动（推荐）"): "auto",
+            tr("仅文字层（电子票）"): "text",
+            tr("仅OCR（扫描件）"): "ocr",
         }
         mode = mode_map.get(self.mode_var.get(), "auto")
 
@@ -712,12 +823,12 @@ class App(_AppBase):
     def stop_process(self):
         if self.worker and self.worker.is_alive():
             self.stop_event.set()
-            self.status_var.set("正在停止...")
-            self.update_banner("正在停止，当前页处理完后停止", "warn")
-            self.append_log("已请求停止，当前页处理完后停止")
+            self.status_var.set(tr("正在停止..."))
+            self.update_banner(tr("正在停止，当前页处理完后停止"), "warn")
+            self.append_log(tr("已请求停止，当前页处理完后停止"))
 
     def _on_progress(self, msg, cur, total):
-        self.status_var.set(msg)
+        self.status_var.set(tr_runtime(msg))
         if total:
             self.progress_var.set(cur * 100.0 / total)
 
@@ -725,33 +836,45 @@ class App(_AppBase):
         self.result = res
         self.invoices = res.invoices
         self.progress_var.set(100 if res.invoices else 0)
-        self.status_var.set(f"识别完成: {len(res.invoices)} 张发票，跳过 {len(res.skipped)} 页")
+        self.status_var.set(
+            tr_runtime(f"识别完成: {len(res.invoices)} 张发票，跳过 {len(res.skipped)} 页")
+        )
         for line in res.logs:
             self.append_log(line)
         for s in res.skipped:
-            self.append_log(f"跳过 {Path(s['file']).name} 第{s['page']}页: {s['reason']}")
+            reason = tr_runtime(str(s["reason"]))
+            self.append_log(f"跳过 {Path(s['file']).name} 第{s['page']}页: {reason}")
         try:
-            self.recognize_button.configure(state="normal", text="开始识别", bg="#2E7D32")
+            self.recognize_button.configure(state="normal", text=tr("开始识别"), bg="#2E7D32")
         except Exception:
             pass
         self.refresh_invoice_list()
         if self.invoices:
             kind = "warn" if res.skipped else "success"
             extra = f"，跳过 {len(res.skipped)} 页" if res.skipped else ""
-            self.update_banner(f"识别完成：{len(res.invoices)} 张发票{extra} — 可在左侧核对后生成 Excel", kind)
+            self.update_banner(
+                tr_runtime(f"识别完成：{len(res.invoices)} 张发票{extra} — 可在左侧核对后生成 Excel"),
+                kind,
+            )
             self.select_invoice(0)
             if not self.output_path.get():
                 self._guess_output()
         else:
-            self.update_banner(f"识别完成：没有可用发票，跳过 {len(res.skipped)} 页 — 请查看日志或手动新增", "error")
-            self.append_log("没有识别到可用发票。若是扫描件，请确认页面清晰；也可手动新增发票。")
+            self.update_banner(
+                tr_runtime(f"识别完成：没有可用发票，跳过 {len(res.skipped)} 页 — 请查看日志或手动新增"),
+                "error",
+            )
+            self.append_log(tr("没有识别到可用发票。若是扫描件，请确认页面清晰；也可手动新增发票。"))
 
     def refresh_invoice_list(self):
         self.invoice_tree.delete(*self.invoice_tree.get_children())
         for i, inv in enumerate(self.invoices):
             warnings = inv.validate()
-            status = "注意" if warnings else "OK"
-            source = Path(inv.source_file).name + f" 第{inv.page}页"
+            status = tr("注意") if warnings else "OK"
+            if get_language() == "en":
+                source = f"{Path(inv.source_file).name} page {inv.page}"
+            else:
+                source = Path(inv.source_file).name + f" 第{inv.page}页"
             self.invoice_tree.insert(
                 "",
                 "end",
@@ -886,7 +1009,7 @@ class App(_AppBase):
         inv = self.current_invoice()
         sel = self.item_tree.selection()
         if not inv or not sel:
-            messagebox.showwarning("提示", "请先选择一行明细")
+            messagebox.showwarning(tr("提示"), tr("请先选择一行明细"))
             return
         try:
             idx = int(sel[0])
@@ -958,7 +1081,10 @@ class App(_AppBase):
         if self.current_invoice():
             self.inv_arrival_var.set(self.current_invoice().arrival_date)
             self.inv_stock_var.set(self.current_invoice().stock_date)
-        self.append_log(f"已应用日期: 到货={arrival or '开票日期'}, 入库={stock or '开票日期'}")
+        if get_language() == "en":
+            self.append_log(f"Dates applied: arrival={arrival or 'invoice date'}, stock={stock or 'invoice date'}")
+        else:
+            self.append_log(f"已应用日期: 到货={arrival or '开票日期'}, 入库={stock or '开票日期'}")
 
     def add_manual_invoice(self):
         inv = Invoice(source_file="", page=0, seller="", invoice_date="", total=None)
@@ -972,24 +1098,10 @@ class App(_AppBase):
         self.append_log("已手动新增一张空白发票，请填写销售方、发票号、日期和明细")
 
     def show_help(self):
-        text = (
-            "使用步骤：\n"
-            "1. 添加 PDF/图片，或直接把文件/文件夹拖到左侧列表区域。\n"
-            "2. 点“识别”。扫描件会自动旋转、OCR，并读取发票二维码核对号码/金额/日期。\n"
-            "3. 在左侧选择发票，在“明细与字段”里核对；双击明细行可编辑。\n"
-            "4. 设置年份/月份/输出路径，点“生成 Excel”。\n"
-            "5. 生成后可选导出 PDF 检查版式（需要电脑安装 Excel）。\n\n"
-            "说明：\n"
-            "- 费用报销单等非发票页会自动跳过。\n"
-            "- 供应商简写默认去掉“有限公司/个体工商户”等后缀，可在“表名简写”里改。\n"
-            "- 材料名称/规格会尽量保留发票全文；如有 OCR 错字，请在此处修正。\n"
-            "- 可用“学习历史入库单”导入旧表，提高项目/单位/规格匹配。\n"
-            "- 输出为 .xls，打印设置已按 Epson LQ-730K 三联复写纸配置。\n"
-        )
-        messagebox.showinfo("使用说明", text)
+        messagebox.showinfo(tr("使用说明"), help_text())
 
     def learn_history(self):
-        folder = filedialog.askdirectory(title="选择历史入库单所在文件夹")
+        folder = filedialog.askdirectory(title=tr("选择历史入库单所在文件夹"))
         if not folder:
             return
         try:
@@ -998,14 +1110,14 @@ class App(_AppBase):
                 self.append_log(line)
             self.append_log(f"学习完成: {rows} 条项目记录, {aliases} 个供应商别名")
         except Exception as e:
-            messagebox.showerror("学习失败", str(e))
+            messagebox.showerror(tr("学习失败"), str(e))
 
     def generate_excel(self):
         if self.worker and self.worker.is_alive():
-            messagebox.showwarning("提示", "正在识别，请稍候")
+            messagebox.showwarning(tr("提示"), tr("正在识别，请稍候"))
             return
         if not self.invoices:
-            messagebox.showwarning("提示", "没有可生成的发票")
+            messagebox.showwarning(tr("提示"), tr("没有可生成的发票"))
             return
         self.apply_invoice_edits()
         for inv in self.invoices:
@@ -1017,20 +1129,26 @@ class App(_AppBase):
         all_warnings = []
         for inv in self.invoices:
             inv.finalize_totals()
-            all_warnings.extend(f"{inv.sheet_name}: {w}" for w in inv.validate())
+            all_warnings.extend(f"{inv.sheet_name}: {tr_runtime(w)}" for w in inv.validate())
         if all_warnings:
-            text = "发现以下警告：\n\n" + "\n".join(all_warnings[:20])
-            if len(all_warnings) > 20:
-                text += f"\n... 共 {len(all_warnings)} 条"
-            text += "\n\n仍然生成吗？"
-            if not messagebox.askyesno("核对提醒", text):
+            if get_language() == "en":
+                text = "Warnings:\n\n" + "\n".join(all_warnings[:20])
+                if len(all_warnings) > 20:
+                    text += f"\n... total {len(all_warnings)} item(s)"
+                text += "\n\nGenerate anyway?"
+            else:
+                text = "发现以下警告：\n\n" + "\n".join(all_warnings[:20])
+                if len(all_warnings) > 20:
+                    text += f"\n... 共 {len(all_warnings)} 条"
+                text += "\n\n仍然生成吗？"
+            if not messagebox.askyesno(tr("核对提醒"), text):
                 return
         out = self.output_path.get().strip()
         if not out:
             self._guess_output()
             out = self.output_path.get().strip()
         if not out:
-            messagebox.showwarning("提示", "请先设置输出路径")
+            messagebox.showwarning(tr("提示"), tr("请先设置输出路径"))
             return
         if not out.lower().endswith(".xls"):
             out += ".xls"
@@ -1038,27 +1156,32 @@ class App(_AppBase):
         try:
             info = write_workbook(self.invoices, out)
         except Exception as e:
-            messagebox.showerror("生成失败", str(e))
+            messagebox.showerror(tr("生成失败"), str(e))
             return
         self.update_banner(f"已生成：{out}", "success")
         issues = verify_workbook(out, self.invoices)
         if issues:
-            self.append_log("自检发现问题:")
+            self.append_log(tr("自检发现问题:"))
             for issue in issues:
                 self.append_log("  - " + issue)
         else:
-            self.append_log("自检: 金额/税金/价税合计核对通过")
-        if messagebox.askyesno("生成完成", f"已生成 {info['sheets']} 张工作表：\n{out}\n\n是否导出 PDF 做版式检查？"):
+            self.append_log(tr("自检: 金额/税金/价税合计核对通过"))
+        if get_language() == "en":
+            ask = f"Generated {info['sheets']} sheet(s):\n{out}\n\nExport PDF for layout check?"
+        else:
+            ask = f"已生成 {info['sheets']} 张工作表：\n{out}\n\n是否导出 PDF 做版式检查？"
+        if messagebox.askyesno(tr("生成完成"), ask):
             pdf = str(Path(out).with_name(Path(out).stem + "-打印.pdf"))
             ok, msg = export_pdf_and_check(out, pdf)
-            self.append_log(("PDF 检查: " if ok else "PDF 检查失败: ") + msg)
+            self.append_log((tr("PDF 检查: ") if ok else tr("PDF 检查失败: ")) + msg)
             if ok:
-                if messagebox.askyesno("PDF 检查通过", msg + "\n\n是否打开 PDF？"):
+                open_pdf = "Open the PDF?" if get_language() == "en" else "是否打开 PDF？"
+                if messagebox.askyesno(tr("PDF 检查通过"), msg + "\n\n" + open_pdf):
                     try:
                         os.startfile(pdf)
                     except Exception:
                         pass
-        if messagebox.askyesno("完成", "是否打开生成的 Excel？"):
+        if messagebox.askyesno(tr("完成"), tr("是否打开生成的 Excel？")):
             try:
                 os.startfile(out)
             except Exception:
@@ -1070,13 +1193,13 @@ class App(_AppBase):
             try:
                 os.startfile(path)
             except Exception as e:
-                messagebox.showerror("打开失败", str(e))
+                messagebox.showerror(tr("打开失败"), str(e))
         else:
-            messagebox.showinfo("提示", "输出文件还不存在")
+            messagebox.showinfo(tr("提示"), tr("输出文件还不存在"))
 
     def on_close(self):
         if self.worker and self.worker.is_alive():
-            if not messagebox.askyesno("退出", "正在识别，确定退出吗？"):
+            if not messagebox.askyesno(tr("退出"), tr("正在识别，确定退出吗？")):
                 return
             self.stop_event.set()
         self.destroy()

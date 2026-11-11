@@ -92,6 +92,7 @@ def main():
     test_discount_merge()
     test_seller_selection()
     test_mode_selection()
+    test_i18n()
     print("OK: basic tests passed")
 
 
@@ -215,6 +216,25 @@ def test_mode_selection():
     assert decide_engine("text", True, []) == "none"
     assert decide_engine("auto", False, []) == "ocr"
     assert decide_engine("text", False, []) == "none"
+
+
+def test_i18n():
+    from invoice2rkd import i18n
+
+    orig = i18n.SETTINGS_FILE
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            i18n.SETTINGS_FILE = Path(tmp) / "settings.json"
+            i18n.set_language("en")
+            assert i18n.get_language() == "en"
+            assert i18n.tr("添加 PDF/图片") == "Add PDF/Images"
+            assert i18n.tr_runtime("第1行缺少单位") == "Line 1: missing unit"
+            assert i18n.tr_runtime("识别完成: 140 张发票，跳过 0 页") == "Done: 140 invoice(s), 0 page(s) skipped"
+            i18n.set_language("zh")
+            assert i18n.get_language() == "zh"
+            assert i18n.tr("添加 PDF/图片") == "添加 PDF/图片"
+    finally:
+        i18n.SETTINGS_FILE = orig
 
 
 if __name__ == "__main__":

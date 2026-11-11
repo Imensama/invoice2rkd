@@ -7,7 +7,7 @@
 ![界面截图](docs/screenshot.png)
 
 > Windows 10/11 · 本地离线 · MIT License  
-> 当前 v1.2：电子发票文字层 + 扫描件 OCR 双路径、优惠行合并、卖方识别增强已可用。
+> 当前 v1.3：中/英界面切换、电子发票文字层 + 扫描件 OCR 双路径、优惠行合并、公司设置。
 
 ---
 
@@ -37,6 +37,7 @@
 - 销售方取右侧销售方全称；购买方是“个人”时不会误当卖方。
 - 自动跳过费用报销单等非发票页；同一张发票重复扫描只录一次。
 - 软件内“公司设置”：填写入库单标题、购买方公司名称，保存后立即生效。
+- **中文 / English 界面切换**，适合在中国工作的外国同事；打印/Excel 入库单仍为中文。
 - 识别后可在界面校对：改字段、改明细、补行、补单位。
 - 生成 `.xls`：每张发票一个工作表，表名 = 供应商简写 + 价税合计（重名加 `-MMDD`）。
 - 打印设置按 Epson LQ-730K 三联复写纸配置：286 纸型、纵向、1 页宽 × 1 页高、左右 0.2in / 上下 0.4in、页眉页脚为空。
@@ -99,6 +100,18 @@ powershell -ExecutionPolicy Bypass -File build.ps1
 `_internal\data\company.json` 作为默认值，但界面设置优先。
 
 ---
+
+## 英文界面 / English UI
+
+进度条右侧有 **“语言/Language”** 下拉框：
+
+- 中文 Windows 默认中文；
+- 其他语言系统默认 English；
+- 可随时手动切换，立即生效。
+
+English UI covers the main window, invoice fields, line items, company settings, dialogs, logs and common warnings. Invoice data (seller/item names) stays as printed on the Chinese invoice.
+
+**打印/Excel 入库单保持中文**，不做英文单据。依据《中华人民共和国会计法》第二十二条：会计记录的文字应当使用中文；外商投资企业、外国企业等可以同时使用一种外国文字。入库单作为会计资料，不能只有英文。
 
 ## 输出效果
 
@@ -196,6 +209,7 @@ PDF/图片
 - [x] 电子 PDF 文字层 + 扫描 OCR 双路径（按页自动选择/回退）
 - [x] 优惠行（负数）合并成一条净额明细
 - [x] 卖方识别增强：右侧销售方、购买方“个人”不误当卖方
+- [x] 中/英界面切换（打印/Excel 保持中文）
 - [ ] 更多混合版式/票种适配
 - [ ] 手工校对/批量编辑体验优化
 
