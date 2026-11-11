@@ -45,7 +45,7 @@
 
 1. 打开 https://github.com
 2. 点右上角 **Sign up**。
-3. 填邮箱、密码、用户名（用户名会成为仓库地址的一部分，建议用英文，例如 `imen`）。
+3. 填邮箱、密码、用户名（用户名会成为仓库地址的一部分，建议用英文，例如 `yourname`）。
 4. 完成邮箱验证。
 5. 建议在 **Settings → Password and authentication** 打开两步验证（2FA）。
 
@@ -70,7 +70,7 @@
 1. 在新仓库页面，点 **uploading an existing file**。
 2. 打开资源管理器，进入：
    ```
-   C:\Users\imen_\Documents\Default Project\invoice2rkd-public
+   C:\Users\<你的用户名>\Documents\invoice2rkd-public
    ```
 3. 按 `Ctrl+A` 选中里面**所有文件和文件夹**（注意：不要选中 `invoice2rkd-public` 这一层文件夹本身）。
 4. 把这些内容拖到浏览器的上传区域。
@@ -112,7 +112,7 @@
 2. 点绿色 **Code** → **Open with GitHub Desktop**。
 3. GitHub Desktop 会弹出克隆窗口，选一个本地目录，例如：
    ```
-   C:\Users\imen_\Documents\GitHub\invoice2rkd
+   C:\Users\<你的用户名>\Documents\GitHub\invoice2rkd
    ```
 4. 点 **Clone**。
 
@@ -162,7 +162,7 @@ exe/zip 体积较大，**不要放到仓库文件里**，放 GitHub 的 **Releas
 
 1. 先准备好公开版压缩包：
    ```
-   C:\Users\imen_\Documents\Default Project\invoice2rkd-release\入库单生成器-便携版.zip
+   <你的发布目录>\入库单生成器-便携版.zip
    ```
    这个包是从公开源码打的，不带公司历史库。以后重新打包后，zip 会生成在 `invoice2rkd-public\dist\`，把它复制到 `invoice2rkd-release` 或直接上传即可。
 2. 打开你的 GitHub 仓库，点右侧 **Releases** → **Draft a new release**。
@@ -206,7 +206,7 @@ exe/zip 体积较大，**不要放到仓库文件里**，放 GitHub 的 **Releas
    ```
 2. 重新打包公开版：
    ```powershell
-   cd C:\Users\imen_\Documents\Default Project\invoice2rkd-public
+   cd <你的 invoice2rkd-public 目录>
    powershell -ExecutionPolicy Bypass -File build.ps1
    ```
 3. 把源码改动同步到 GitHub（方式 B/C）。
@@ -267,8 +267,8 @@ GitHub 支持中文文件名；但为了少出问题，仓库名、分支名、�
 
 ## 10. 你现在的文件在哪
 
-- 要上传的源码：`C:\Users\imen_\Documents\Default Project\invoice2rkd-public`
-- GitHub 公开版便携包：`C:\Users\imen_\Documents\Default Project\invoice2rkd-release\入库单生成器-便携版.zip`
-- 你日常用的内部版（带历史学习库）：`C:\Users\imen_\Documents\Default Project\invoice2rkd`
+- 要上传的源码：`<你的项目目录>\invoice2rkd-public`
+- GitHub 公开版便携包：`<你的发布目录>\入库单生成器-便携版.zip`
+- 你日常用的内部版（带历史学习库，**不要上传**）：`<你的项目目录>\invoice2rkd`
 
 如果还有不确定的，先把仓库设成 **Private**，自己点一遍确认没问题，再改 Public。
