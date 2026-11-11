@@ -1,3 +1,8 @@
+<h2 align="center">⚠️ 扫描请用 600dpi！低分辨率会出错</h2>
+<h3 align="center">⚠️ Scan at 600 DPI! Low resolution causes errors</h3>
+
+**电子发票有文字层，不受影响。 Electronic invoices with a PDF text layer are not affected.**
+
 [English](README.md) | 中文
 
 # 扫描发票 → 入库单生成器（Invoice2RKD）
@@ -7,6 +12,8 @@
 **适用范围：中华人民共和国境内开具的发票**——增值税专用发票、增值税普通发票、电子发票、全面数字化电子发票（数电发票）及扫描件/拍照发票。不处理英文/外国发票。
 
 如果你每个月都要把发票上的项目名称、规格、数量、单价、税额手工抄进入库单，这个工具可以省掉大部分复制粘贴。它按公司入库单模板生成 `.xls`，打印设置已适配 Epson LQ-730K 三联复写纸。
+
+> **强烈建议使用 600dpi 扫描。** 低分辨率（150/200dpi）会明显增加表格线、小字、数字和优惠行的识别错误；电子发票有 PDF 文字层，不受此限制。
 
 ![界面截图](docs/screenshot.png)
 

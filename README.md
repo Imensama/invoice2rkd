@@ -1,3 +1,8 @@
+<h2 align="center">⚠️ Scan at 600 DPI! Low resolution causes errors</h2>
+<h3 align="center">⚠️ 扫描请用 600dpi！低分辨率会出错</h3>
+
+**Electronic invoices with a PDF text layer are not affected. 电子发票有文字层，不受影响。**
+
 [中文](README.zh-CN.md) | English
 
 # Invoice → Receipt Generator (Invoice2RKD) / 中国发票 → 入库单
@@ -7,6 +12,8 @@
 **Scope: invoices issued within the territory of the People's Republic of China** — VAT special invoices (增值税专用发票), VAT ordinary invoices (增值税普通发票), electronic invoices (电子发票), fully digitalized electronic invoices / digitalized e-invoices (全面数字化电子发票 / 数电发票), and scanned copies. It does not process English/foreign invoices.
 
 If you have to copy item names, specs, quantities, unit prices and tax into a fixed receipt template every month, this tool removes most of the manual work. It generates `.xls` receipts with print settings prepared for the Epson LQ-730K 3-ply paper.
+
+> **Strong recommendation: scan at 600 dpi.** Low-resolution scans (150/200 dpi) significantly increase OCR errors in table lines, small text, numbers and discount lines. Electronic invoices with a PDF text layer are not affected.
 
 ![screenshot](docs/screenshot.png)
 
