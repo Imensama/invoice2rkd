@@ -208,7 +208,7 @@ def test_seller_selection():
 def test_mode_selection():
     words = [
         {"text": "电子发票"},
-        {"text": "发票号码：26342000002848663861"},
+        {"text": "发票号码：12345678901234567890"},
         {"text": "项目名称"},
         {"text": "金额"},
         {"text": "价税合计"},
