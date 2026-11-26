@@ -53,7 +53,7 @@ Built for procurement, finance, warehouse and admin staff who process invoices i
 
 ## Quick start (portable)
 
-1. Download `入库单生成器-便携版.zip` from **Releases**.
+1. Download the portable zip (`invoice2rkd-v1.3.1-portable.zip`) from **Releases**.
 2. Extract it and run `入库单生成器\入库单生成器.exe` (keep the `_internal` folder next to the exe).
 3. Click **Company Settings** (top right), fill in the receipt title and buyer company name, save.
 4. Drag invoice PDFs/images into the left list, or click **Add PDF/Images**.
