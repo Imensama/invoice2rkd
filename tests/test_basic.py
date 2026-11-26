@@ -85,6 +85,11 @@ def main():
                 total_row = r
                 break
         assert total_row is not None
+        # Detail rows follow the actual item count; no fixed 13-row bank.
+        assert total_row == 5, total_row
+        assert sheet.nrows == 8, sheet.nrows
+        assert sheet.cell_value(total_row - 1, 0) == 2
+        assert sheet.cell_value(total_row, 0) == 3
         assert abs(float(sheet.cell_value(total_row, 7)) - 1500.0) < 0.001
         assert abs(float(sheet.cell_value(total_row, 8)) - 195.0) < 0.001
         assert abs(float(sheet.cell_value(total_row, 9)) - 1695.0) < 0.001

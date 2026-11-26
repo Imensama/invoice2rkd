@@ -18,7 +18,7 @@ If you have to copy item names, specs, quantities, unit prices and tax into a fi
 ![screenshot](docs/screenshot.png)
 
 > Windows 10/11 · fully offline · MIT License  
-> Current v1.3: Chinese/English UI, PDF text layer + OCR for scans, discount-line merging, company settings.
+> Current v1.3.1: Chinese/English UI, PDF text layer + OCR for scans, discount-line merging, company settings. Detail rows follow the actual item count; the total row follows immediately.
 
 ---
 
@@ -100,9 +100,10 @@ No need to edit `data/company.json` or rebuild the app.
 ## Output
 
 - One worksheet per invoice.
+- Detail rows follow the actual item count; the total row follows the last item immediately. No fixed bank of blank detail rows, so the old duplicate serial-number problem is gone.
 - Sheet name = seller alias + total; duplicates get `-MMDD`.
 - Columns: No. / Item / Spec / Unit / Qty / Unit Price / Unit Price incl. tax (hidden) / Amount / Tax / Total / Arrival Date / Stock Date / Remark.
-- Total row: amount + tax = total = invoice total.
+- Total row: amount + tax = total = invoice total; serial = item count + 1.
 - Print: 286 paper, portrait, 1×1, 0.2/0.4 in margins.
 - Example: [examples/示例-入库单.xls](examples/示例-入库单.xls) (fictional data only).
 

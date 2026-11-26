@@ -164,7 +164,7 @@ def write_workbook(invoices: list[Invoice], out_path: str, backup: bool = True) 
         ws.col(6).hidden = 1
         ws.col(6).width = 2080
 
-        detail_rows = max(13, len(inv.items))
+        detail_rows = max(1, len(inv.items))
         total_row = 3 + detail_rows
         blank_row = total_row + 1
         footer_row = total_row + 2
@@ -324,8 +324,8 @@ def verify_workbook(path: str, invoices: list[Invoice]) -> list[str]:
             issues.append(f"{names[idx]}: 税金合计 {tax:.2f} ≠ 发票税额 {inv.tax_total:.2f}")
         if sheet.ncols < 13:
             issues.append(f"{names[idx]}: 列数不足 13")
-        if sheet.nrows < 19:
-            issues.append(f"{names[idx]}: 行数不足 19")
+        if sheet.nrows < 4:
+            issues.append(f"{names[idx]}: 行数异常")
     return issues
 
 
